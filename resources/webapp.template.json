@@ -1,0 +1,61 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "webApp-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Web App"
+            }
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "name": "[parameters('webApp-settings').name]",
+            "type": "Microsoft.Web/sites",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2016-08-01",
+            "dependsOn": [],
+            "tags": {
+                "[concat('hidden-related:', parameters('webApp-settings').serverFarmId)]": "Resource",
+                "displayName": "[parameters('webApp-settings').name]"
+            },
+            "properties": {
+                "name": "[parameters('webApp-settings').name]",
+                "hostNames": "[parameters('webApp-settings').hostNames]",
+                "serverFarmId": "[parameters('webApp-settings').serverFarmId]"
+            },
+            "resources": []
+        },
+        {
+            "apiVersion": "2016-08-01",
+            "location": "[resourceGroup().location]",
+            "type": "Microsoft.Web/sites/config",
+            "name": "[concat(parameters('webApp-settings').name, '/appsettings')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('webApp-settings').name)]"
+            ],
+            "tags": {
+                "displayName": "app-settings"
+            },
+            "properties": "[parameters('webApp-settings').appSettings]"
+        },
+        {
+            "apiVersion": "2016-03-01",
+            "location": "[resourceGroup().location]",
+            "name": "[concat(parameters('webApp-settings').name, '/web')]",
+            "type": "Microsoft.Web/sites/sourcecontrols",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('webApp-settings').name)]",
+                "[resourceId('Microsoft.Web/sites/config',parameters('webApp-settings').name,'appsettings')]"
+            ],
+            "properties": {
+                "RepoUrl": "[parameters('webApp-settings').base]",
+                "branch": "[parameters('webApp-settings').branch]",
+                "IsManualIntegration": true
+            }
+        }
+    ],
+    "outputs": {}
+}

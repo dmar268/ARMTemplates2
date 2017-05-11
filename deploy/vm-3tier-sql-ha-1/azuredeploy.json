@@ -1,0 +1,704 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "baseUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "Select the appropriate Repository Base URL containing Pattern Templates and Resource Templates"
+      },
+      "defaultValue": "https://raw.githubusercontent.com/mrptsai/External-Cloud/",
+      "allowedValues": [
+        "https://raw.githubusercontent.com/mrptsai/External-Cloud/"
+      ]
+    },
+    "baseBranch": {
+      "type": "string",
+      "metadata": {
+        "description": "Select the appropriate Repository Branch"
+      },
+      "defaultValue": "master",
+      "allowedValues": [
+        "master"
+      ]
+    },
+    "patternName": {
+      "type": "string",
+      "metadata": {
+        "description": "Select the appropriate Architectural Pattern"
+      },
+      "allowedValues": [
+        "vm-3tier-sql-ha-1"
+      ],
+      "defaultValue": "vm-3tier-sql-ha-1"
+    },
+    "publicIPDnsName": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a DNS name to resolve to the Public IP Address"
+      },
+      "defaultValue": "pip-sqlao-dev"
+    },
+    "deploymentPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "The prefix name for the the Always On Cluster deployment"
+      },
+      "defaultValue": "sqlao-dev"
+    },
+    "mgmtStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account for the Management Tier Server. Use PowerShell and the following command to generate a unique Storage Account Name 'mgmt + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+      },
+      "defaultValue": "storage95retv2jno4d0a8"
+    },
+    "mgmtStorageAccountType": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_LRS"
+      ],
+      "metadata": {
+        "description": "The type of the Managment Tier Storage Account created"
+      },
+      "defaultValue": "Standard_LRS"
+    },
+    "mgmtStorageNewOrExisting": {
+      "type": "string",
+      "metadata": {
+        "description": "Is the Storage Account New or Existing?"
+      },
+      "allowedValues": [
+        "new",
+        "existing"
+      ],
+      "defaultValue": "existing"
+    },
+    "mgmtStorageExistingResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifiy the existing Storage Resource Group. Leave blank if creating a new Storage Account"
+      },
+      "defaultValue": "DEV-Melbourne"
+    },
+    "webStorageAccountName0": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account for every even Web Tier Server. Use PowerShell and the following command to generate a unique Storage Account Name 'web + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+      },
+      "defaultValue": "storage95retv2jno4d0a8"
+    },
+    "webStorageAccountName1": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account for every odd Web Tier Server. Use PowerShell and the following command to generate a unique Storage Account Name 'web + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+      },
+      "defaultValue": "storagevmc3yb7wgh69osk"
+    },
+    "webStorageAccountType": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_LRS"
+      ],
+      "metadata": {
+        "description": "The type of the Web Tier Storage Account created"
+      },
+      "defaultValue": "Standard_LRS"
+    },
+    "webStorageNewOrExisting": {
+      "type": "string",
+      "metadata": {
+        "description": "Is the Storage Account New or Existing?"
+      },
+      "allowedValues": [
+        "new",
+        "existing"
+      ],
+      "defaultValue": "existing"
+    },
+    "webStorageExistingResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifiy the existing Storage Resource Group. Leave blank if creating a new Storage Account"
+      },
+      "defaultValue": "DEV-Melbourne"
+    },
+    "bizStorageAccountName0": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account for every even Business Tier Server. Use PowerShell and the following command to generate a unique Storage Account Name 'biz + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+      },
+      "defaultValue": "storage95retv2jno4d0a8"
+    },
+    "bizStorageAccountName1": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account for every odd Business Tier Server. Use PowerShell and the following command to generate a unique Storage Account Name 'biz + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+      },
+      "defaultValue": "storagevmc3yb7wgh69osk"
+    },
+    "bizStorageAccountType": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_LRS"
+      ],
+      "metadata": {
+        "description": "The type of the Business Tier Storage Account created"
+      },
+      "defaultValue": "Standard_LRS"
+    },
+    "bizStorageNewOrExisting": {
+      "type": "string",
+      "metadata": {
+        "description": "Is the Storage Account New or Existing?"
+      },
+      "allowedValues": [
+        "new",
+        "existing"
+      ],
+      "defaultValue": "existing"
+    },
+    "bizStorageExistingResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifiy the existing Storage Resource Group. Leave blank if creating a new Storage Account"
+      },
+      "defaultValue": "DEV-Melbourne"
+    },
+    "sqlStorageAccountName0": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account for the every even SQL Tier Server. Use PowerShell and the following command to generate a unique Storage Account Name 'sql + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+      },
+      "defaultValue": "storage95retv2jno4d0a8"
+    },
+    "sqlStorageAccountName1": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account for the every odd SQL Tier Server. Use PowerShell and the following command to generate a unique Storage Account Name 'sql + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+      },
+      "defaultValue": "storagevmc3yb7wgh69osk"
+    },
+    "sqlStorageAccountType": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_LRS"
+      ],
+      "metadata": {
+        "description": "The type of the Sql Server Storage Account created"
+      },
+      "defaultValue": "Standard_LRS"
+    },
+    "sqlStorageNewOrExisting": {
+      "type": "string",
+      "metadata": {
+        "description": "Is the Storage Account New or Existing?"
+      },
+      "allowedValues": [
+        "new",
+        "existing"
+      ],
+      "defaultValue": "existing"
+    },
+    "sqlStorageExistingResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifiy the existing Storage Resource Group. Leave blank if creating a new Storage Account"
+      },
+      "defaultValue": "DEV-Melbourne"
+    },
+    "dcStorageAccountName0": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account for every even Domain Controller. Use PowerShell and the following command to generate a unique Storage Account Name 'dc + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+      },
+      "defaultValue": "storage95retv2jno4d0a8"
+    },
+    "dcStorageAccountName1": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account for every odd Domain Controller. Use PowerShell and the following command to generate a unique Storage Account Name 'dc + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+      },
+      "defaultValue": "storagevmc3yb7wgh69osk"
+    },
+    "dcStorageAccountType": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_LRS"
+      ],
+      "metadata": {
+        "description": "The type of the Domain Controller Storage Account created"
+      },
+      "defaultValue": "Standard_LRS"
+    },
+    "dcStorageNewOrExisting": {
+      "type": "string",
+      "metadata": {
+        "description": "Is the Storage Account New or Existing?"
+      },
+      "allowedValues": [
+        "new",
+        "existing"
+      ],
+      "defaultValue": "existing"
+    },
+    "dcStorageExistingResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifiy the existing Storage Resource Group. Leave blank if creating a new Storage Account"
+      },
+      "defaultValue": "DEV-Melbourne"
+    },
+    "virtualNetworkName": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter a Name for a Virtual Network or specify the name of an existing Virtual Network."
+      },
+      "defaultValue": "vnet-sqlao-dev"
+    },
+    "virtualNetworkNewOrExisting": {
+      "type": "string",
+      "metadata": {
+        "description": "Is the Virtual Network New or Existing?"
+      },
+      "allowedValues": [
+        "new",
+        "existing"
+      ],
+      "defaultValue": "new"
+    },
+    "virtualNetworkExistingResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifiy the existing Virtual Network Resource Group. Leave blank if creating a new Virtual Network"
+      },
+      "defaultValue": ""
+    },
+    "virtualNetworkPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the Virtual Network Prefix to create or to be used"
+      },
+      "defaultValue": "192.168.0.0/24"
+    },
+    "subnet0Prefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the the Subnet Prefix for the Management Tier"
+      },
+      "defaultValue": "192.168.0.0/28"
+    },
+    "subnet0Name": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the Subnet name for the Management Tier to create or to be used"
+      },
+      "defaultValue": "mgmt"
+    },
+    "subnet1Prefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the the Subnet Prefix for the Web Tier"
+      },
+      "defaultValue": "192.168.0.16/28"
+    },
+    "subnet1Name": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the Subnet name for the Web Tier to create or to be used"
+      },
+      "defaultValue": "web"
+    },
+    "subnet2Prefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the the Subnet Prefix for the Biz Tier"
+      },
+      "defaultValue": "192.168.0.32/28"
+    },
+    "subnet2Name": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the Subnet name for the Biz Tier to create or to be used"
+      },
+      "defaultValue": "biz"
+    },
+    "subnet3Prefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the Subnet Prefix for the SQL Tier"
+      },
+      "defaultValue": "192.168.0.48/28"
+    },
+    "subnet3Name": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the Subnet name for the sql Tier to create or to be used"
+      },
+      "defaultValue": "sql"
+    },
+    "subnet4Prefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the Subnet Prefix for the DC Tier"
+      },
+      "defaultValue": "192.168.0.64/28"
+    },
+    "subnet4Name": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the Subnet name for the sql Tier to create or to be used"
+      },
+      "defaultValue": "dc"
+    },
+    "adPriIpAddress": {
+      "type": "string",
+      "metadata": {
+        "description": "The IP address of the new AD VM"
+      },
+      "defaultValue": "192.168.0.65"
+    },
+    "adSecIpAddress": {
+      "type": "string",
+      "metadata": {
+        "description": "The IP address of the new backup AD VM"
+      },
+      "defaultValue": "192.168.0.66"
+    },
+    "bizLBIPAddress": {
+      "type": "string",
+      "metadata": {
+        "description": "The IP address of the new Biz Tier Internal Load Balancer"
+      },
+      "defaultValue": "192.168.0.46"
+    },
+    "bizPort": {
+      "type": "string",
+      "metadata": {
+        "description": "The Port Number for the Applicatin on the Business Tier"
+      },
+      "defaultValue": "12340"
+    },
+    "clusterIPAddress": {
+      "type": "string",
+      "metadata": {
+        "description": "The IP address of the cluster"
+      },
+      "defaultValue": "192.168.0.61"
+    },
+    "sqlAutoPatchingDay": {
+      "type": "string",
+      "allowedValues": [
+        "Never",
+        "Everyday",
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday"
+      ],
+      "metadata": {
+        "description": "The day of a week for auto patching"
+      },
+      "defaultValue": "Sunday"
+    },
+    "sqlAutoPatchingStartHour": {
+      "type": "string",
+      "allowedValues": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22",
+        "23"
+      ],
+      "metadata": {
+        "description": "The start hour of a day for auto patching"
+      },
+      "defaultValue": "2"
+    },
+    "sqlCount": {
+      "type": "string",
+      "metadata": {
+        "description": "How many SQL Virtual Machines do you want to deploy int he Cluster?"
+      },
+      "allowedValues": [ "2", "4", "6", "8" ],
+      "defaultValue": "2"
+    },
+    "sqlLBIPAddress": {
+      "type": "string",
+      "metadata": {
+        "description": "The IP address of the new SQL Tier Internal Load Balancer"
+      },
+      "defaultValue": "192.168.0.62"
+    },
+    "sqlNumberOfDisks": {
+      "type": "string",
+      "allowedValues": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "metadata": {
+        "description": "The Sql VM Disk Size"
+      },
+      "defaultValue": "1"
+    },
+    "sqlPort": {
+      "type": "string",
+      "metadata": {
+        "description": "The Port number used by SQL"
+      },
+      "defaultValue": "49168"
+    },
+
+    "sqlServerServiceAccountUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "The SQL Server Service Account name"
+      },
+      "defaultValue": "sqlservice"
+    },
+    "sqlServerServiceAccountPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The SQL Server Service Account password"
+      },
+      "defaultValue": "Windows@2016"
+    },
+
+    "sqlWorkloadType": {
+      "type": "string",
+      "allowedValues": [
+        "GENERAL",
+        "OLTP",
+        "DW"
+      ],
+      "metadata": {
+        "description": "The Sql VM work load type: GENERAL - general work load; DW - datawear house work load; OLTP - Transactional processing work load"
+      },
+      "defaultValue": "GENERAL"
+    },
+    "vmAdminUserName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specify the VM local Logon Account that will have Administration Privileges"
+      },
+      "minLength": 1,
+      "defaultValue": "adminuser"
+    },
+    "vmAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Enter a Password for the local Administration Account"
+      },
+      "defaultValue": "Windows@2016"
+    },
+    "vmCount": {
+      "type": "string",
+      "metadata": {
+        "description": "How many Virtual Machine do you want to deploy?"
+      },
+      "allowedValues": [ "2", "3", "4", "5" ],
+      "defaultValue": "2"
+    }
+  },
+  "variables": {
+    "templateUrl": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/', parameters('patternName'), '/', parameters('patternName'), '.json')]",
+    "domainName": "[concat(parameters('deploymentPrefix'),'.local')]",
+    "storage-settings": {
+      "mgmt": {
+        "accounts": [ "[parameters('mgmtStorageAccountName')]" ],
+        "accountType": "[parameters('mgmtStorageAccountType')]",
+        "newOrExisting": "[parameters('mgmtStorageNewOrExisting')]",
+        "existingRg": "[parameters('mgmtStorageExistingResourceGroup')]"
+      },
+      "web": {
+        "accounts": [
+          "[parameters('webStorageAccountName0')]",
+          "[parameters('webStorageAccountName1')]"
+        ],
+        "accountType": "[parameters('webStorageAccountType')]",
+        "newOrExisting": "[parameters('webStorageNewOrExisting')]",
+        "existingRg": "[parameters('webStorageExistingResourceGroup')]"
+      },
+      "biz": {
+        "accounts": [
+          "[parameters('bizStorageAccountName0')]",
+          "[parameters('bizStorageAccountName1')]"
+        ],
+        "accountType": "[parameters('bizStorageAccountType')]",
+        "newOrExisting": "[parameters('bizStorageNewOrExisting')]",
+        "existingRg": "[parameters('bizStorageExistingResourceGroup')]"
+      },
+      "sql": {
+        "accounts": [
+          "[parameters('sqlStorageAccountName0')]",
+          "[parameters('sqlStorageAccountName1')]"
+        ],
+        "accountType": "[parameters('sqlStorageAccountType')]",
+        "newOrExisting": "[parameters('sqlStorageNewOrExisting')]",
+        "existingRg": "[parameters('sqlStorageExistingResourceGroup')]"
+      },
+      "fsw": {
+        "accounts": [
+          "[parameters('sqlStorageAccountName0')]"
+        ],
+        "accountType": "[parameters('sqlStorageAccountType')]",
+        "newOrExisting": "[parameters('sqlStorageNewOrExisting')]",
+        "existingRg": "[parameters('sqlStorageExistingResourceGroup')]"
+      },
+      "diag": {
+        "accounts": [
+          "[concat(uniquestring(parameters('sqlStorageAccountName0')), 'diag')]",
+          "[concat(uniquestring(parameters('sqlStorageAccountName1')), 'diag')]"
+        ],
+        "accountType": "Standard_LRS",
+        "newOrExisting": "[parameters('sqlStorageNewOrExisting')]",
+        "existingRg": "[parameters('sqlStorageExistingResourceGroup')]"
+      },
+      "dc": {
+        "accounts": [
+          "[parameters('dcStorageAccountName0')]",
+          "[parameters('dcStorageAccountName1')]"
+        ],
+        "accountType": "[parameters('dcStorageAccountType')]",
+        "newOrExisting": "[parameters('dcStorageNewOrExisting')]",
+        "existingRg": "[parameters('dcStorageExistingResourceGroup')]"
+      }
+    },
+    "vnet-settings": {
+      "name": "[parameters('virtualNetworkName')]",
+      "newOrExisting": "[parameters('virtualNetworkNewOrExisting')]",
+      "existingRg": "[parameters('virtualNetworkExistingResourceGroup')]",
+      "prefix": "[parameters('virtualNetworkPrefix')]",
+      "subnets": {
+        "subnet0Prefix": "[parameters('subnet0Prefix')]",
+        "subnet0Name": "[parameters('subnet0Name')]",
+        "subnet1Prefix": "[parameters('subnet1Prefix')]",
+        "subnet1Name": "[parameters('subnet1Name')]",
+        "subnet2Prefix": "[parameters('subnet2Prefix')]",
+        "subnet2Name": "[parameters('subnet2Name')]",
+        "subnet3Prefix": "[parameters('subnet3Prefix')]",
+        "subnet3Name": "[parameters('subnet3Name')]",
+        "subnet4Prefix": "[parameters('subnet4Prefix')]",
+        "subnet4Name": "[parameters('subnet4Name')]"
+      }
+    },
+    "pip-settings": {
+      "dnsName": "[parameters('publicIPDnsName')]",
+      "newOrExisting": "new",
+      "existingRg": null
+    },
+    "lb-settings": {
+      "dnsName": "[parameters('publicIPDnsName')]",
+      "biz": {
+        "ipAddress": "[parameters('bizLBIPAddress')]",
+        "internalPorts": "[int(parameters('bizPort'))]"
+      },
+      "sql": {
+        "ipAddress": "[parameters('sqlLBIPAddress')]",
+        "internalPorts": "[int(parameters('sqlPort'))]"
+      }
+    },
+    "vm-settings": {
+      "adminUserName": "[parameters('vmAdminUserName')]",
+      "adminPassword": "[parameters('vmAdminPassword')]",
+      "count": "[int(parameters('vmCount'))]",
+      "type": 0
+    },
+    "dc-settings": {
+      "domainName": "[variables('domainName')]",
+      "ipAddresses": [
+        "[parameters('adPriIpAddress')]",
+        "[parameters('adSecIpAddress')]"
+      ]
+    },
+    "sql-settings": {
+      "aoGroupName": "[concat(parameters('deploymentPrefix'),'-ag')]",
+      "aoEndPointName": "[concat(parameters('deploymentPrefix'),'-hadr')]",
+      "aoListenerName": "[concat(parameters('deploymentPrefix'),'-listener')]",
+      "aoListenerPort": "[int(parameters('sqlPort'))]",
+      "autoPatchingDay": "[parameters('sqlAutoPatchingDay')]",
+      "autoPatchingStartHour": "[parameters('sqlAutoPatchingStartHour')]",
+      "clusterName": "[concat(parameters('deploymentPrefix'),'-fc')]",
+      "clusterIPAddress": "[parameters('clusterIPAddress')]",
+      "count": "[int(parameters('sqlCount'))]",
+      "numberOfSqlDisks": "[parameters('sqlNumberOfDisks')]",
+      "serviceAccountPassword": "[parameters('sqlServerServiceAccountPassword')]",
+      "serviceAccountUserName": "[parameters('sqlServerServiceAccountUserName')]",
+      "sharePath": "[concat(parameters('deploymentPrefix'),'-fsw')]",
+      "type": 2,
+      "workload": "[parameters('sqlWorkloadType')]"
+    },
+    "base-config": {
+      "dscScripts": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/', 'dsc-scripts')]",
+      "resources": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/', 'resources')]",
+      "templates": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/', parameters('patternName'))]"
+    }
+  },
+  "resources": [
+    {
+      "name": "[parameters('patternName')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-09-01",
+      "dependsOn": [],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('templateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "storage-settings": {
+            "value": "[variables('storage-settings')]"
+          },
+          "vnet-settings": {
+            "value": "[variables('vnet-settings')]"
+          },
+          "pip-settings": {
+            "value": "[variables('pip-settings')]"
+          },
+          "lb-settings": {
+            "value": "[variables('lb-settings')]"
+          },
+          "vm-settings": {
+            "value": "[variables('vm-settings')]"
+          },
+          "sql-settings": {
+            "value": "[variables('sql-settings')]"
+          },
+          "dc-settings": {
+            "value": "[variables('dc-settings')]"
+          },
+          "base-config": {
+            "value": "[variables('base-config')]"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+  }
+}

@@ -1,0 +1,40 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "servicePlan-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for a Service Plan"
+            }
+        }
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "name": "[parameters('servicePlan-settings').name]",
+            "type": "Microsoft.Web/serverfarms",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-08-01",
+            "sku": {
+                "name": "[parameters('servicePlan-settings').size]",
+                "capacity": "[parameters('servicePlan-settings').workerSize]"
+            },
+            "dependsOn": [],
+            "tags": {
+                "displayName": "[parameters('servicePlan-settings').name]"
+            },
+            "properties": {
+                "name": "[parameters('servicePlan-settings').name]",
+                "numberOfWorkers": 1
+            }
+        }
+    ],
+    "outputs": {
+        "servicePlanID": {
+            "value": "[resourceId('Microsoft.Web/serverfarms', parameters('servicePlan-settings').name)]",
+            "type": "string"
+        }
+    }
+}

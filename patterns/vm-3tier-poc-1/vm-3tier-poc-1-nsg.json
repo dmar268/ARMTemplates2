@@ -1,0 +1,49 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "nsg-settings": {
+            "type": "array",
+            "metadata": {
+                "description": "These are settings for the Availability Sets"
+            }
+        },
+        "base-config": {
+            "type": "object",
+            "metadata": {
+                "description": "Base config for respository Url and Branch for Resource and Shared Templates"
+            }
+        }
+    },
+    "variables": {
+        "resourcesUrl": "[parameters('base-config').resources]",
+        "nsgCount": "[length(parameters('nsg-settings'))]",
+        "nsgTemplate": "[concat(variables('resourcesUrl'), '/', 'nsg.template.json')]"
+    },
+    "resources": [
+        {
+            "name": "[parameters('nsg-settings')[copyIndex()].name]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "copy": {
+                "count": "[variables('nsgCount')]",
+                "name": "nsgLoop"
+            },
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('nsgTemplate')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "nsg-settings": {
+                        "value": "[parameters('nsg-settings')[copyIndex()]]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}

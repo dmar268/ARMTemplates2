@@ -1,0 +1,251 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "baseUrl": {
+            "allowedValues": [
+                "https://raw.githubusercontent.com/mrptsai/External-Cloud/"
+            ],
+            "defaultValue": "https://raw.githubusercontent.com/mrptsai/External-Cloud/",
+            "metadata": {
+                "description": "Select the appropriate Repository Base URL containing Pattern Templates and Resource Templates"
+            },
+            "type": "string"
+        },
+        "baseBranch": {
+            "allowedValues": [
+                "master"
+            ],
+            "defaultValue": "master",
+            "metadata": {
+                "description": "Select the appropriate Repository Branch"
+            },
+            "type": "string"
+        },
+        "deploymentPrefix": {
+            "metadata": {
+                "description": "Enter a Deployment Prefix containing the Country Code, Environment Code with Location Code and Project Abbreviation e.g. au-901-xyz-iaas"
+            },
+            "type": "string"
+        },
+        "patternName": {
+            "type": "string",
+            "metadata": {
+                "description": "Select the appropriate Architectural Pattern"
+            },
+            "defaultValue": "vm-dual-poc-1",
+            "allowedValues": [
+                "vm-dual-poc-1"
+            ]
+        },
+        "publicIPDnsName": {
+            "type": "string",
+            "metadata": {
+                "description": "Enter a DNS name to resolve to the Public IP Address"
+            }
+        },
+        "primaryStorageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Enter a unique Name for a new Primary Storage Account for all even number of VMs or specify the name of an existing Storage Account. Use PowerShell and the following command to generate a unique Storage Account Name 'st' + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))"
+            }
+        },
+        "secondaryStorageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Enter a unique Name for a new Secondary Storage Account for all odd number of VMs or specify the name of an existing Storage Account. Use PowerShell and the following command to generate a unique Storage Account Name 'st' + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))"
+            }
+        },
+        "diagnosticAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Enter a unique Name for a new Diagnostic Storage Account or specify the name of an existing Diagostive Storage Account. Use PowerShell and the following command to generate a unique Diagnostic Storage Account Name 'dg' + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))"
+            }
+        },
+        "storageNewOrExisting": {
+            "type": "string",
+            "metadata": {
+                "description": "Are the Storage Accounts New or Existing?"
+            },
+            "allowedValues": [
+                "new",
+                "existing"
+            ]
+        },
+        "storageExistingResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the existing Storage Resource Group. Leave blank if creating a new Storage Accounts"
+            },
+            "defaultValue": ""
+        },
+        "virtualNetworkName": {
+            "type": "string",
+            "metadata": {
+                "description": "Enter a Name for a Virtual Network or specify the name of an existing Virtual Network (e.g. vn-au-901-xyz-iaas)."
+            }
+        },
+        "virtualNetworkPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the Virtual Network Prefix to create or to be used (e.g. 10.1.0.0/16)."
+            }
+        },
+        "virtualNetworkNewOrExisting": {
+            "type": "string",
+            "metadata": {
+                "description": "Is the Virtual Network New or Existing?"
+            },
+            "allowedValues": [
+                "new",
+                "existing"
+            ]
+        },
+        "virtualNetworkExistingResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "Specifiy the existing Virtual Network Resource Group. Leave blank if creating a new Virtual Network"
+            },
+            "defaultValue": ""
+        },
+        "subnet0Name": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the Subnet name to create or to be used"
+            },
+            "defaultValue": "mgmt"
+        },
+        "subnet0Prefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the the Subnet Prefix for the subnet (e.g. 10.1.0.0/26)"
+            }
+        },
+        "subnet1Name": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the Subnet name to create or to be used"
+            },
+            "defaultValue": "web"
+        },
+        "subnet1Prefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the the Subnet Prefix for the subnet (e.g. 10.1.0.16/26)"
+            }
+        },
+        "vmAdminUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the VM local Logon Account that will have Administration Priviledges"
+            },
+            "minLength": 1
+        },
+        "vmAdminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Enter a Password for the local Administration Account"
+            }
+        },
+        "vmCount": {
+            "type": "string",
+            "metadata": {
+                "description": "How many Virtual Machine do you want to deploy?"
+            },
+            "allowedValues": [ "2", "4", "6", "8" ]
+        },
+        "vmSize": {
+            "allowedValues": [
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2"
+            ],
+            "metadata": {
+                "description": "Specifiy the size of VM required for the VM(s)"
+            },
+            "type": "string"
+        },
+        "vmType": {
+            "type": "string",
+            "metadata": {
+                "description": "What Operating System to you want to deploy for the VM's. 0 = Windows, 1 = Linux"
+            },
+            "allowedValues": [ "0", "1" ]
+        }
+    },
+    "variables": {
+        "patternUrl": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/patterns/', parameters('patternName'), '/', parameters('patternName'), '.json')]",
+        "base-config": {
+            "dscScripts": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/', 'dsc-scripts')]",
+            "prefix": "[parameters('deploymentPrefix')]",
+            "resources": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/', 'resources')]",
+            "patterns": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/patterns/', parameters('patternName'))]"
+        },
+        "storage-settings": {
+            "accounts": [
+                "[parameters('primaryStorageAccountName')]",
+                "[parameters('secondaryStorageAccountName')]"
+            ],
+            "diagnostic": "[parameters('diagnosticAccountName')]",
+            "newOrExisting": "[parameters('storageNewOrExisting')]",
+            "existingRg": "[parameters('storageExistingResourceGroup')]"
+        },
+        "vnet-settings": {
+            "name": "[parameters('virtualNetworkName')]",
+            "newOrExisting": "[parameters('virtualNetworkNewOrExisting')]",
+            "existingRg": "[parameters('virtualNetworkExistingResourceGroup')]",
+            "prefix": "[parameters('virtualNetworkPrefix')]",
+            "subnets": {
+                "subnet0Prefix": "[parameters('subnet0Prefix')]",
+                "subnet0Name": "[parameters('subnet0Name')]",
+                "subnet1Prefix": "[parameters('subnet1Prefix')]",
+                "subnet1Name": "[parameters('subnet1Name')]"
+            }
+        },
+        "pip-settings": {
+            "dnsName": "[parameters('publicIPDnsName')]"
+        },
+        "vm-settings": {
+            "adminUserName": "[parameters('vmAdminUserName')]",
+            "adminPassword": "[parameters('vmAdminPassword')]",
+            "count": "[int(parameters('vmCount'))]",
+            "vmSize": "[parameters('vmSize')]",
+            "type": "[int(parameters('vmType'))]"
+        }
+    },
+    "resources": [
+        {
+            "name": "[parameters('patternName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('patternUrl')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "base-config": {
+                        "value": "[variables('base-config')]"
+                    },
+                    "pip-settings": {
+                        "value": "[variables('pip-settings')]"
+                    },
+                    "storage-settings": {
+                        "value": "[variables('storage-settings')]"
+                    },
+                    "vm-settings": {
+                        "value": "[variables('vm-settings')]"
+                    },
+                    "vnet-settings": {
+                        "value": "[variables('vnet-settings')]"
+                    }
+                }
+            }
+        }
+
+    ],
+    "outputs": {
+    }
+}

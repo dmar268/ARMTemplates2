@@ -1,0 +1,524 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "base-config": {
+            "metadata": {
+                "description": "Base config for respository Url, Branch for Resource and Shared Templates and environment"
+            },
+            "type": "object"
+        },
+        "pip-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Public IP Address"
+            }
+        },
+        "storage-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Storage Account"
+            }
+        },
+        "vm-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Virtual Machine"
+            }
+        },
+        "vnet-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Virtual Network"
+            }
+        }
+    },
+    "variables": {
+        "urls": {
+            "dscScripts": "[parameters('base-config').dscScripts]",
+            "patterns": "[parameters('base-config').patterns]",
+            "resources": "[parameters('base-config').resources]"
+        },
+        "templates": {
+            "diag": "[concat(variables('urls').resources, '/', 'extn-diag.template.json')]",
+            "dsc": "[concat(variables('urls').resources, '/', 'extn-dsc.template.json')]",
+            "lb": "[concat(variables('urls').resources, '/', 'lb.template.json')]",
+            "nic": "[concat(variables('urls').patterns, '/', 'vm-dual-poc-1-nic.json')]",
+            "nsg": "[concat(variables('urls').patterns, '/', 'vm-dual-poc-1-nsg.json')]",
+            "pip": "[concat(variables('urls').resources, '/', 'pip.template.json')]",
+            "script": "[concat(variables('urls').resources, '/', 'extn-script.template.json')]",
+            "shared": "[concat(variables('urls').resources, '/', 'shared-resources.json')]",
+            "storage": "[concat(variables('urls').resources, '/storage-', parameters('storage-settings').newOrExisting, '.template.json')]",
+            "vm": "[concat(variables('urls').patterns, '/', 'vm-dual-poc-1-vm.json')]"
+        },
+        "ports": [
+            [ 3389 ],
+            [ 22 ]
+        ],
+        "names": {
+            "avs": "[concat('avs-', parameters('base-config').prefix, '-ext')]",
+            "lb": {
+                "name": "[concat('lb-', parameters('base-config').prefix, '-ext')]",
+                "backendPool": "lb-backEnd-http",
+                "frontendPool": "lb-frontEnd",
+                "nat": "nat-rdp-mgmt",
+                "probe": "http-probe",
+                "ruleName": "lb-rule-http"
+            },
+            "nic": {
+                "mgmt": "[concat('nic-', parameters('base-config').prefix, '-mgmt-')]",
+                "web": "[concat('nic-', parameters('base-config').prefix, '-web-')]"
+            },
+            "nsg": {
+                "mgmt": "[concat('nsg-', parameters('base-config').prefix, '-mgmt')]",
+                "web": "[concat('nsg-', parameters('base-config').prefix, '-web')]"
+            },
+            "pip": "[concat('pip-', parameters('base-config').prefix)]",
+            "vm": {
+                "mgmt": "[concat('vm-mgmt-')]",
+                "web": "[concat('vm-web-')]"
+            }
+        },
+        "avsName": "[variables('names').avs]",
+        "lbID": "[resourceId('Microsoft.Network/loadBalancers', variables('lbName'))]", 
+        "lbName": "[variables('names').lb.name]",
+        "vmDiag": [
+            [ "iaas-diagnostic", "Microsoft.Azure.Diagnostics", "IaaSDiagnostics", "1.8" ],
+            [ "linux-diagnostic", "Microsoft.OSTCExtensions", "LinuxDiagnostic", "2.3" ]
+        ],
+        "vmDscScript": [
+            [ "dsc-iis", "Microsoft.Powershell", "DSC", "2.9", "extn-dsc.template.json", "[concat(variables('urls').dscScripts, '/iis-on-windows-vm/iis-config-dsc.zip')]", "iis-config-dsc.ps1", "Main" ],
+            [ "script-apache", "Microsoft.Azure.Extensions", "CustomScript", "2.0", "extn-script.template.json", "[concat(variables('urls').dscScripts, '/apache2-on-ubuntu-vm')]", "install_apache.sh", null ]
+        ],
+        
+        "vmOS": [
+            [ "MicrosoftWindowsServer", "WindowsServer", "2016-Datacenter", "windows" ],
+            [ "Canonical", "UbuntuServer", "16.04-LTS", "linux" ]
+        ]
+    },
+    "resources": [
+        {
+            "name": "sharedResources",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templates').shared]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "avs-settings": {
+                        "value": [
+                            {
+                                "faultCount": 3,
+                                "name": "[variables('names').avs]",
+                                "updateCount": 5
+                            }
+                        ]
+                    },
+                    "base-config": {
+                        "value": "[parameters('base-config')]"
+                    },
+                    "storage-settings": {
+                        "value": {
+                            "accounts": "[parameters('storage-settings').accounts]",
+                            "count": "[length(parameters('storage-settings').accounts)]",
+                            "accountType": "Standard_LRS",
+                            "newOrExisting": "[parameters('storage-settings').newOrExisting]",
+                            "existingRg": "[parameters('storage-settings').existingRg]"
+                        }
+                    },
+                    "vnet-settings": {
+                        "value": {
+                            "name": "[parameters('vnet-settings').name]",
+                            "newOrExisting": "[parameters('vnet-settings').newOrExisting]",
+                            "existingRg": "[parameters('vnet-settings').existingRg]",
+                            "prefix": "[parameters('vnet-settings').prefix]",
+                            "subnets": [
+                                {
+                                    "name": "[parameters('vnet-settings').subnets.subnet0Name]",
+                                    "properties": {
+                                        "addressPrefix": "[parameters('vnet-settings').subnets.subnet0Prefix]"
+                                    }
+                                },
+                                {
+                                    "name": "[parameters('vnet-settings').subnets.subnet1Name]",
+                                    "properties": {
+                                        "addressPrefix": "[parameters('vnet-settings').subnets.subnet1Prefix]"
+                                    }
+                                }
+                            ],
+                            "dnsServers": []
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "diagnosticStorage",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templates').storage]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "storage-settings": {
+                        "value": {
+                            "name": "[parameters('storage-settings').diagnostic]",
+                            "newOrExisting": "[parameters('storage-settings').newOrExisting]",
+                            "existingRg": "[parameters('storage-settings').existingRg]"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "publicIp",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templates').pip]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "pip-settings": {
+                        "value": {
+                            "name": "[variables('names').pip]",
+                            "dnsName": "[parameters('pip-settings').dnsName]",
+                            "publicIPAllocationMethod": "Dynamic"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "loadBalancer",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'publicIp')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templates').lb]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "lb-settings": {
+                        "value": {
+                            "name": "[variables('names').lb.name]",
+                            "count": "[parameters('vm-settings').count]",
+                            "backendPort": "[variables('ports')[parameters('vm-settings').type][0]]",
+                            "frontendIPConfigurations": [
+                                {
+                                    "name": "[variables('names').lb.frontendPool]",
+                                    "properties": {
+                                        "privateIPAllocationMethod": "Dynamic",
+                                        "publicIPAddress": {
+                                            "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('names').pip)]"
+                                        }
+                                    }
+                                }
+                            ],
+                            "backendAddressPools": [
+                                {
+                                    "name": "[variables('names').lb.backendPool]"
+                                }
+                            ],
+                            "loadBalancingRules": [
+                                {
+                                    "name": "[variables('names').lb.ruleName]",
+                                    "properties": {
+                                        "frontendIPConfiguration": {
+                                            "id": "[concat(variables('lbID'),'/frontendIPConfigurations/', variables('names').lb.frontendPool)]"
+                                        },
+                                        "frontendPort": 80,
+                                        "backendPort": 80,
+                                        "enableFloatingIP": false,
+                                        "idleTimeoutInMinutes": 4,
+                                        "protocol": "Tcp",
+                                        "loadDistribution": "SourceIPProtocol",
+                                        "backendAddressPool": {
+                                            "id": "[concat(variables('lbID'),'/backendAddressPools/', variables('names').lb.backendPool)]"
+                                        },
+                                        "probe": {
+                                            "id": "[concat(variables('lbID'),'/probes/', variables('names').lb.probe)]"
+                                        }
+                                    }
+                                }
+                            ],
+                            "probes": [
+                                {
+                                    "name": "[variables('names').lb.probe]",
+                                    "properties": {
+                                        "protocol": "Http",
+                                        "port": 80,
+                                        "requestPath": "/",
+                                        "intervalInSeconds": 5,
+                                        "numberOfProbes": 2
+                                    }
+                                }
+                            ],
+                            "inboundNatRules": [
+                                {
+                                    "name": "nat-rdp-mgmt",
+                                    "properties": {
+                                        "frontendIPConfiguration": {
+                                            "id": "[concat(variables('lbID'),'/frontendIPConfigurations/', variables('names').lb.frontendPool)]"
+                                        },
+                                        "frontendPort": 5000,
+                                        "backendPort": "[variables('ports')[parameters('vm-settings').type][0]]",
+                                        "protocol": "Tcp"
+                                    }
+                                }
+                            ],
+                            "outboundNatRules": [],
+                            "inboundNatPools": []
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "networkSecurityGroups",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'sharedResources')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('templates').nsg]"
+                },
+                "parameters": {
+                    "base-config": {
+                        "value": "[parameters('base-config')]"
+                    },
+                    "nsg-settings": {
+                        "value": [
+                            {
+                                "name": "[variables('names').nsg.mgmt]",
+                                "securityRules": [
+                                    {
+                                        "name": "mgmt-allow",
+                                        "properties": {
+                                            "access": "Allow",
+                                            "destinationAddressPrefix": "[parameters('vnet-settings').subnets.subnet0Prefix]",
+                                            "destinationPortRange": "[variables('ports')[parameters('vm-settings').type][0]]",
+                                            "direction": "Inbound",
+                                            "priority": 100,
+                                            "protocol": "TCP",
+                                            "sourceAddressPrefix": "*",
+                                            "sourcePortRange": "5000"
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "[variables('names').nsg.web]",
+                                "securityRules": [
+                                    {
+                                        "name": "http-allow",
+                                        "properties": {
+                                            "access": "Allow",
+                                            "destinationAddressPrefix": "[parameters('vnet-settings').subnets.subnet1Prefix]",
+                                            "destinationPortRange": "80",
+                                            "direction": "Inbound",
+                                            "priority": 100,
+                                            "protocol": "TCP",
+                                            "sourceAddressPrefix": "*",
+                                            "sourcePortRange": "*"
+                                        }
+                                    },
+                                    {
+                                        "name": "mgmt-allow",
+                                        "properties": {
+                                            "access": "Allow",
+                                            "destinationAddressPrefix": "[parameters('vnet-settings').subnets.subnet1Prefix]",
+                                            "destinationPortRange": "[variables('ports')[parameters('vm-settings').type][0]]",
+                                            "direction": "Inbound",
+                                            "priority": 200,
+                                            "protocol": "TCP",
+                                            "sourceAddressPrefix": "[parameters('vnet-settings').subnets.subnet0Prefix]",
+                                            "sourcePortRange": "*"
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "name": "networkInterfaces",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'networkSecurityGroups')]",
+                "[resourceId('Microsoft.Resources/deployments', 'loadBalancer')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('templates').nic]"
+                },
+                "parameters": {
+                    "base-config": {
+                        "value": "[parameters('base-config')]"
+                    },
+                    "nic-settings": {
+                        "value": {
+                            "mgmt": {
+                                "name": "[variables('names').nic.mgmt]",
+                                "count": 1,
+                                "ipConfigurations": [
+                                    {
+                                        "name": "ipconfig1",
+                                        "properties": {
+                                            "privateIPAllocationMethod": "Dynamic",
+                                            "subnet": {
+                                                "id": "[concat(reference('sharedResources').outputs.vnetID.value, '/subnets/', parameters('vnet-settings').subnets.subnet0Name)]"
+                                            },
+                                            "loadBalancerInboundNatRules": [
+                                                {
+                                                    "id": "[concat(variables('lbID'),'/inboundNatRules/', variables('names').lb.nat)]"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ],
+                                "dnsSettings": {
+                                    "dnsServers": []
+                                },
+                                "enableIPForwarding": false,
+                                "networkSecurityGroup": {
+                                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('names').nsg.mgmt)]"
+                                }
+                            },
+                            "web": {
+                                "name": "[variables('names').nic.web]",
+                                "count": "[parameters('vm-settings').count]",
+                                "ipConfigurations": [
+                                    {
+                                        "name": "ipconfig1",
+                                        "properties": {
+                                            "privateIPAllocationMethod": "Dynamic",
+                                            "subnet": {
+                                                "id": "[concat(reference('sharedResources').outputs.vnetID.value, '/subnets/', parameters('vnet-settings').subnets.subnet1Name)]"
+                                            },
+                                            "loadBalancerBackendAddressPools": [
+                                                {
+                                                    "id": "[concat(variables('lbID'),'/backendAddressPools/', variables('names').lb.backendPool)]"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ],
+                                "dnsSettings": {
+                                    "dnsServers": []
+                                },
+                                "enableIPForwarding": false,
+                                "networkSecurityGroup": {
+                                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('names').nsg.web)]"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "virtualMachines",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'sharedResources')]",
+                "[resourceId('Microsoft.Resources/deployments', 'networkInterfaces')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('templates').vm]"
+                },
+                "parameters": {
+                    "base-config": {
+                        "value": "[parameters('base-config')]"
+                    },
+                    "extn-settings": {
+                        "value": {
+                            "diag": {
+                                "name": "[variables('vmDiag')[parameters('vm-settings').type][0]]",
+                                "publisher": "[variables('vmDiag')[parameters('vm-settings').type][1]]",
+                                "type": "[variables('vmDiag')[parameters('vm-settings').type][2]]",
+                                "typeHandlerVersion": "[variables('vmDiag')[parameters('vm-settings').type][3]]",
+                                "storageName": "[parameters('storage-settings').diagnostic]",
+                                "storageID": "[reference('diagnosticStorage').outputs.storageAccountId.value]"
+                            },
+                            "dsc": {
+                                "name": "[variables('vmDscScript')[parameters('vm-settings').type][0]]",
+                                "publisher": "[variables('vmDscScript')[parameters('vm-settings').type][1]]",
+                                "type": "[variables('vmDscScript')[parameters('vm-settings').type][2]]",
+                                "typeHandlerVersion": "[variables('vmDscScript')[parameters('vm-settings').type][3]]",
+                                "configuration": {
+                                    "url": "[variables('vmDscScript')[parameters('vm-settings').type][5]]",
+                                    "script": "[variables('vmDscScript')[parameters('vm-settings').type][6]]",
+                                    "function": "[variables('vmDscScript')[parameters('vm-settings').type][7]]"
+                                },
+                                "configurationArguments": null,
+                                "protectedSettings": null,
+                                "fileUris": [ "[variables('vmDscScript')[parameters('vm-settings').type][5]]" ],
+                                "file": "[variables('vmDscScript')[parameters('vm-settings').type][6]]"
+                            },
+                            "template": "[variables('vmDscScript')[parameters('vm-settings').type][4]]"
+
+                        }
+                    },
+                    "storage-settings": {
+                        "value": "[parameters('storage-settings')]"
+                    },
+                    "vm-settings": {
+                        "value": {
+                            "adminUserName": "[parameters('vm-settings').adminUserName]",
+                            "adminPassword": "[parameters('vm-settings').adminPassword]",
+                            "avsID": "[resourceId('Microsoft.Compute/availabilitySets', variables('avsName'))]",
+                            "os": {
+                                "imagePublisher": "[variables('vmOS')[parameters('vm-settings').type][0]]",
+                                "imageOffer": "[variables('vmOS')[parameters('vm-settings').type][1]]",
+                                "imageSku": "[variables('vmOS')[parameters('vm-settings').type][2]]",
+                                "name": "[variables('vmOS')[parameters('vm-settings').type][3]]"
+                            },
+                            "storageAccountContainerName": "[toLower(resourceGroup().name)]",
+                            "vmSize": "[parameters('vm-settings').vmSize]",
+                            "mgmt": {
+                                "name": "[variables('names').vm.mgmt]",
+                                "count": 1,
+                                "nicName": "[variables('names').nic.mgmt]"
+                            },
+                            "web": {
+                                "name": "[variables('names').vm.web]",
+                                "count": "[parameters('vm-settings').count]",
+                                "nicName": "[variables('names').nic.web]"
+                            }
+                        }
+                    }
+                }
+            }
+        }        
+    ],
+    "outputs": {}
+}

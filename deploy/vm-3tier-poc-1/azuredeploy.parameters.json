@@ -1,0 +1,86 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "baseBranch": {
+      "value": "master"
+    },
+    "baseUrl": {
+      "value": "https://raw.githubusercontent.com/mrptsai/External-Cloud/"
+    },
+    "deploymentPrefix": {
+      "value": "us-001"
+    },
+    "patternName": {
+      "value": "vm-3tier-poc-2"
+    },
+    "publicIPDnsName": {
+      "value": "xyz-iaas-prod"
+    },
+    "storageAccountName": {
+      "value": "st1c2lk30inezvwsrd7001"
+    },
+    "storageExistingResourceGroup": {
+      "value": "rg-us-001"
+    },
+    "storageNewOrExisting": {
+      "value": "existing"
+    },
+    "subnet0Name": {
+      "value": "mgmt"
+    },
+    "subnet0Prefix": {
+      "value": "10.1.0.0/27"
+    },
+    "subnet1Name": {
+      "value": "web"
+    },
+    "subnet1Prefix": {
+      "value": "10.1.0.32/27"
+    },
+    "subnet2Name": {
+      "value": "app"
+    },
+    "subnet2Prefix": {
+      "value": "10.1.0.64/27"
+    },
+    "subnet3Name": {
+      "value": "sql"
+    },
+    "subnet3Prefix": {
+      "value": "10.1.0.96/27"
+    },
+    "virtualNetworkName": {
+      "value": "vn-us-001-2"
+    },
+    "virtualNetworkNewOrExisting": {
+      "value": "new"
+    },
+    "virtualNetworkPrefix": {
+      "value": "10.1.0.0/16"
+    },
+    "vmAdminUserName": {
+      "value": "testuser"
+    },
+    "vmSizeApp": {
+      "value": "Standard_D1_v2"
+    },
+    "vmSizeMgmt": {
+      "value": "Standard_D1_v2"
+    },
+    "vmSizeSql": {
+      "value": "Standard_D1_v2"
+    },
+    "vmSizeWeb": {
+      "value": "Standard_D1_v2"
+    },
+    "vmAdminPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/e0932dd0-92c1-4735-9dc7-3fbf76a385cf/resourceGroups/rg-us-001/providers/Microsoft.KeyVault/vaults/kv-us-001"
+        },
+        "secretName": "testuser"
+      }
+    }
+  }
+}

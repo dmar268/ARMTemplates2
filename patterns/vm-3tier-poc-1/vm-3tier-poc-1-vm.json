@@ -1,0 +1,58 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "storage-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Storage Accounts"
+            }
+        },
+        "vm-settings": {
+            "type": "array",
+            "metadata": {
+                "description": "These are settings for the Virtual Machines"
+            }
+        },
+        "base-config": {
+            "type": "object",
+            "metadata": {
+                "description": "Base config for respository Url and Branch for Resource and Shared Templates"
+            }
+        }
+    },
+    "variables": {
+        "resourcesUrl": "[parameters('base-config').resources]",
+        "vmCount": "[length(parameters('vm-settings'))]",
+        "vmTemplate": "[concat(variables('resourcesUrl'), '/', 'vm-windows.template.json')]"
+    },
+    "resources": [
+        {
+            "name": "[parameters('vm-settings')[copyIndex()].name]",
+            "copy": {
+                "name": "vmLoop",
+                "count": "[variables('vmCount')]"
+            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('vmTemplate')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "storage-settings": {
+                        "value": "[parameters('storage-settings')]"
+                    },
+                    "vm-settings": {
+                        "value": "[parameters('vm-settings')[copyIndex()]]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}

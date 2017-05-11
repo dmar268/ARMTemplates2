@@ -1,0 +1,111 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "storage-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Storage Account"
+            }
+        },
+        "vnet-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Virtual Network"
+            }
+        },
+        "avs-settings": {
+            "type": "array",
+            "metadata": {
+                "description": "These are settings for the Availibility Set"
+            }
+        },
+        "base-config": {
+            "type": "object",
+            "metadata": {
+                "description": "Base config for respository Url and Branch for Resource and Shared Templates"
+            }
+        }
+    },
+    "variables": {
+        "resourcesUrl": "[parameters('base-config').resources]",
+        "storageTemplateUrl": "[concat(variables('resourcesUrl'), '/storage-', parameters('storage-settings').newOrExisting, '.template.json')]",
+        "vnetTemplateUrl": "[concat(variables('resourcesUrl'), '/vnet-', parameters('vnet-settings').newOrExisting, '.template.json')]",
+        "avsTemplateUrl": "[concat(variables('resourcesUrl'), '/avs.template.json')]",
+        "avsCount": "[length(parameters('avs-settings'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat('storageAccount', copyIndex())]",
+            "copy": {
+                "name": "storageLoop",
+                "count": "[length(parameters('storage-settings').accounts)]"
+            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2015-01-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('storageTemplateUrl')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "storage-settings": {
+                        "value": {
+                            "name": "[parameters('storage-settings').accounts[copyIndex()]]",
+                            "accountType": "[parameters('storage-settings').accountType]",
+                            "existingRg": "[parameters('storage-settings').existingRg]"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "virtualNetwork",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('vnetTemplateUrl')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "vnet-settings": {
+                        "value": "[parameters('vnet-settings')]"
+                    }
+                }
+            }
+        },
+        {
+            "name": "[parameters('avs-settings')[copyIndex()].name]",
+            "copy": {
+                "name": "avsLoop",
+                "count": "[variables('avsCount')]"
+            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('avsTemplateUrl')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "avs-settings": {
+                        "value": "[parameters('avs-settings')[copyIndex()]]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "vnetID": {
+            "value": "[reference('virtualNetwork').outputs.vnetID.value]",
+            "type": "string"
+        }
+    }
+}

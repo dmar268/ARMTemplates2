@@ -1,0 +1,49 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "nic-settings": {
+            "type": "array",
+            "metadata": {
+                "description": "These are settings for the Network Interfaces"
+            }
+        },
+        "base-config": {
+            "type": "object",
+            "metadata": {
+                "description": "Base config for respository Url and Branch for Resource and Shared Templates"
+            }
+        }
+    },
+    "variables": {
+        "resourcesUrl": "[parameters('base-config').resources]",
+        "nicCount": "[length(parameters('nic-settings'))]",
+        "nicTemplate": "[concat(variables('resourcesUrl'), '/', 'nic.template.json')]"
+
+    },
+    "resources": [
+        {
+            "name": "[parameters('nic-settings')[copyIndex()].name]",
+            "copy": {
+                "name": "nicLoop",
+                "count": "[variables('nicCount')]"
+            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('nicTemplate')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "nic-settings": {
+                        "value": "[parameters('nic-settings')[copyIndex()]]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}

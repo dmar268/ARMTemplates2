@@ -1,0 +1,295 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "baseUrl": {
+            "allowedValues": [
+                "https://raw.githubusercontent.com/mrptsai/External-Cloud/"
+            ],
+            "defaultValue": "https://raw.githubusercontent.com/mrptsai/External-Cloud/",
+            "metadata": {
+                "description": "Select the appropriate Repository Base URL containing Pattern Templates and Resource Templates"
+            },
+            "type": "string"
+        },
+        "baseBranch": {
+            "allowedValues": [
+                "master"
+            ],
+            "defaultValue": "master",
+            "metadata": {
+                "description": "Select the appropriate Repository Branch"
+            },
+            "type": "string"
+        },
+        "deploymentPrefix": {
+            "metadata": {
+                "description": "Enter a Deployment Prefix containing the Country Code, Environment Code with Location Code and Project Abbreviation e.g. au-901-xyz-iaas"
+            },
+            "type": "string"
+        },
+        "patternName": {
+            "allowedValues": [
+                "vm-3tier-poc-1"
+            ],
+            "defaultValue": "vm-3tier-poc-1",
+            "metadata": {
+                "description": "Select the appropriate Pattern Template"
+            },
+            "type": "string"
+        },
+        "publicIPDnsName": {
+            "metadata": {
+                "description": "Specify the DNS name for the Public IP Address"
+            },
+            "type": "string"
+        },
+        "storageAccountName": {
+            "metadata": {
+                "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account. Use PowerShell and the following command to generate a unique Storage Account Name 'storage + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+            },
+            "type": "string"
+        },
+        "storageNewOrExisting": {
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Is the Storage Account New or Existing?"
+            },
+            "type": "string"
+        },
+        "storageExistingResourceGroup": {
+            "defaultValue": "",
+            "metadata": {
+                "description": "Specifiy the existing Storage Resource Group. Leave blank if creating a new Storage Account"
+            },
+            "type": "string"
+        },
+        "virtualNetworkName": {
+            "metadata": {
+                "description": "Enter a Name for a Virtual Network or specify the name of an existing Virtual Network (e.g. vn-au-901-xyz-iaas)"
+            },
+            "type": "string"
+        },
+        "virtualNetworkPrefix": {
+            "metadata": {
+                "description": "Specify the Virtual Network Prefix to create or to be used"
+            },
+            "type": "string"
+        },
+        "virtualNetworkNewOrExisting": {
+            "allowedValues": [
+                "new",
+                "existing"
+            ],
+            "metadata": {
+                "description": "Is the Virtual Network New or Existing?"
+            },
+            "type": "string"
+        },
+        "virtualNetworkExistingResourceGroup": {
+            "defaultValue": "",
+            "metadata": {
+                "description": "Specifiy the existing Virtual Network Resource Group. Leave blank if creating a new Virtual Network"
+            },
+            "type": "string"
+        },
+        "subnet0Name": {
+            "defaultValue": "mgmt",
+            "metadata": {
+                "description": "Specify the Subnet name for the Management Tier to create or to be used"
+            },
+            "type": "string"
+        },
+        "subnet0Prefix": {
+            "metadata": {
+                "description": "Specify the the Subnet Prefix for the Management Tier"
+            },
+            "type": "string"
+        },
+        "subnet1Name": {
+            "defaultValue": "web",
+            "metadata": {
+                "description": "Specify the Subnet name for the Web Tier to create or to be used"
+            },
+            "type": "string"
+        },
+        "subnet1Prefix": {
+            "metadata": {
+                "description": "Specify the the Subnet Prefix for the Web Tier"
+            },
+            "type": "string"
+        },
+        "subnet2Name": {
+            "defaultValue": "app",
+            "metadata": {
+                "description": "Specify the Subnet name for the Biz Tier to create or to be used"
+            },
+            "type": "string"
+        },
+        "subnet2Prefix": {
+            "metadata": {
+                "description": "Specify the the Subnet Prefix for the Biz Tier"
+            },
+            "type": "string"
+        },
+        "subnet3Name": {
+            "defaultValue": "sql",
+            "metadata": {
+                "description": "Specify the Subnet name for the sql Tier to create or to be used"
+            },
+            "type": "string"
+        },
+        "subnet3Prefix": {
+            "metadata": {
+                "description": "Specify the Subnet Prefix for the SQL Tier"
+            },
+            "type": "string"
+        },
+        "vmAdminPassword": {
+            "metadata": {
+                "description": "Enter a Password for the local Administration Account"
+            },
+            "type": "securestring"
+        },
+        "vmAdminUserName": {
+            "metadata": {
+                "description": "Specify the VM local Logon Account that will have Administration Priviledges"
+            },
+            "minLength": 1,
+            "type": "string"
+        },
+        "vmSizeApp": {
+            "allowedValues": [
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2"
+            ],
+            "metadata": {
+                "description": "Specifiy the size of VM required for the Application Tier"
+            },
+            "type": "string"
+        },
+        "vmSizeMgmt": {
+            "allowedValues": [
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2"
+            ],
+            "metadata": {
+                "description": "Specifiy the size of VM required for the Management Tier"
+            },
+            "type": "string"
+        },
+        "vmSizeSql": {
+            "allowedValues": [
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2"
+            ],
+            "metadata": {
+                "description": "Specifiy the size of VM required for the SQL Tier"
+            },
+            "type": "string"
+        },
+        "vmSizeWeb": {
+            "allowedValues": [
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2"
+            ],
+            "metadata": {
+                "description": "Specifiy the size of VM required for the Web Tier"
+            },
+            "type": "string"
+        }
+    },
+    "variables": {
+        "templateUrl": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/patterns/', parameters('patternName'), '/', parameters('patternName'), '.json')]",
+        "base-config": {
+            "dscScripts": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/', 'dsc-scripts')]",
+            "prefix": "[parameters('deploymentPrefix')]",
+            "resources": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/', 'resources')]",
+            "templates": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/patterns/', parameters('patternName'))]"
+        },
+        "lb-settings": {
+            "dnsName": "[parameters('publicIPDnsName')]",
+            "vmCount": 1
+        },
+        "pip-settings": {
+            "dnsName": "[parameters('publicIPDnsName')]"
+        },
+        "storage-settings": {
+            "accounts": [
+                "[parameters('storageAccountName')]"
+            ],
+            "existingRg": "[parameters('storageExistingResourceGroup')]",
+            "newOrExisting": "[parameters('storageNewOrExisting')]"
+        },
+        "vm-settings": {
+            "adminPassword": "[parameters('vmAdminPassword')]",
+            "adminUserName": "[parameters('vmAdminUserName')]",
+            "vmCount": 1,
+            "vmSizeApp": "[parameters('vmSizeApp')]",
+            "vmSizeMgmt": "[parameters('vmSizeMgmt')]",
+            "vmSizeSql": "[parameters('vmSizeSql')]",
+            "vmSizeWeb": "[parameters('vmSizeWeb')]"
+        },
+        "vnet-settings": {
+            "existingRg": "[parameters('virtualNetworkExistingResourceGroup')]",
+            "name": "[parameters('virtualNetworkName')]",
+            "newOrExisting": "[parameters('virtualNetworkNewOrExisting')]",
+            "prefix": "[parameters('virtualNetworkPrefix')]",
+            "subnets": {
+                "subnet0Name": "[parameters('subnet0Name')]",
+                "subnet0Prefix": "[parameters('subnet0Prefix')]",
+                "subnet1Name": "[parameters('subnet1Name')]",
+                "subnet1Prefix": "[parameters('subnet1Prefix')]",
+                "subnet2Name": "[parameters('subnet2Name')]",
+                "subnet2Prefix": "[parameters('subnet2Prefix')]",
+                "subnet3Name": "[parameters('subnet3Name')]",
+                "subnet3Prefix": "[parameters('subnet3Prefix')]"
+            }
+        }
+    },
+    "resources": [
+        {
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "name": "[parameters('patternName')]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "contentVersion": "1.0.0.0",
+                    "uri": "[variables('templateUrl')]"
+                },
+                "parameters": {
+                    "base-config": {
+                        "value": "[variables('base-config')]"
+                    },
+                    "lb-settings": {
+                        "value": "[variables('lb-settings')]"
+                    },
+                    "pip-settings": {
+                        "value": "[variables('pip-settings')]"
+                    },
+                    "storage-settings": {
+                        "value": "[variables('storage-settings')]"
+                    },
+                    "vm-settings": {
+                        "value": "[variables('vm-settings')]"
+                    },
+                    "vnet-settings": {
+                        "value": "[variables('vnet-settings')]"
+                    }
+                }
+            },
+            "type": "Microsoft.Resources/deployments"
+        }
+
+    ],
+    "outputs": {
+    }
+}

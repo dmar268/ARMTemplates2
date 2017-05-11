@@ -1,0 +1,190 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "base-config": {
+            "type": "object",
+            "metadata": {
+                "description": "Base config for respository Url and Branch for Resource and Shared Templates"
+            }
+        },
+        "extn-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Diagnostic Extensions"
+            }
+        },
+        "storage-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Storage Accounts"
+            }
+        },
+        "vm-settings": {
+            "type": "object",
+            "metadata": {
+                "description": "These are settings for the Virtual Machines"
+            }
+        }
+    },
+    "variables": {
+        "urls": {
+            "resources": "[parameters('base-config').resources]"
+        },
+        "templates": {
+            "diag": "[concat(variables('urls').resources, '/', 'extn-diag.template.json')]",
+            "extn": "[concat(variables('urls').resources, '/', parameters('extn-settings').template)]",
+            "vm": "[concat(variables('urls').resources, '/vm-', parameters('vm-settings').os.name, '.template.json')]"
+        },
+        "math": {
+            "modulo2": [ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 ],
+            "modulo3": [ 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2 ]
+        }
+    },
+    "resources": [
+        {
+            "name": "[concat('mgmtVm', copyIndex())]",
+            "copy": {
+                "name": "mgmtVmLoop",
+                "count": "[parameters('vm-settings').mgmt.count]"
+            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templates').vm]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "storage-settings": {
+                        "value": {
+                            "name": "[parameters('storage-settings').accounts[variables('math').modulo2[copyIndex()]]]"
+                        }
+                    },
+                    "vm-settings": {
+                        "value": {
+                            "name": "[concat(parameters('vm-settings').mgmt.name, copyIndex())]",
+                            "adminUserName": "[parameters('vm-settings').adminUserName]",
+                            "adminPassword": "[parameters('vm-settings').adminPassword]",
+                            "avsID": "[parameters('vm-settings').avsID]",
+                            "imagePublisher": "[parameters('vm-settings').os.imagePublisher]",
+                            "imageOffer": "[parameters('vm-settings').os.imageOffer]",
+                            "imageSku": "[parameters('vm-settings').os.imageSku]",
+                            "nicID": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vm-settings').mgmt.nicName, copyIndex()))]",
+                            "vmSize": "[parameters('vm-settings').vmSize]",
+                            "storageAccountContainerName": "[parameters('vm-settings').storageAccountContainerName]"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "[concat('webVm', copyIndex())]",
+            "copy": {
+                "name": "webVmLoop",
+                "count": "[parameters('vm-settings').web.count]"
+            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templates').vm]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "storage-settings": {
+                        "value": {
+                            "name": "[parameters('storage-settings').accounts[variables('math').modulo2[copyIndex()]]]"
+                        }
+                    },
+                    "vm-settings": {
+                        "value": {
+                            "name": "[concat(parameters('vm-settings').web.name, copyIndex())]",
+                            "adminUserName": "[parameters('vm-settings').adminUserName]",
+                            "adminPassword": "[parameters('vm-settings').adminPassword]",
+                            "avsID": "[parameters('vm-settings').avsID]",
+                            "imagePublisher": "[parameters('vm-settings').os.imagePublisher]",
+                            "imageOffer": "[parameters('vm-settings').os.imageOffer]",
+                            "imageSku": "[parameters('vm-settings').os.imageSku]",
+                            "nicID": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vm-settings').web.nicName, copyIndex()))]",
+                            "vmSize": "[parameters('vm-settings').vmSize]",
+                            "storageAccountContainerName": "[parameters('vm-settings').storageAccountContainerName]"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "[concat('diagnosticExtension', copyindex())]",
+            "copy": {
+                "name": "diagLoop",
+                "count": "[parameters('vm-settings').web.count]"
+            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', concat('webVm', copyIndex()))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templates').diag]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "extn-settings": {
+                        "value": {
+                            "name": "[parameters('extn-settings').diag.name]",
+                            "publisher": "[parameters('extn-settings').diag.publisher]",
+                            "type": "[parameters('extn-settings').diag.type]",
+                            "typeHandlerVersion": "[parameters('extn-settings').diag.typeHandlerVersion]",
+                            "storageName": "[parameters('extn-settings').diag.storageName]",
+                            "storageID": "[parameters('extn-settings').diag.storageID]",
+                            "vmName": "[concat(parameters('vm-settings').web.name, copyIndex())]"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "name": "[concat('dscScriptExtension', copyindex())]",
+            "copy": {
+                "name": "dscScriptLoop",
+                "count": "[parameters('vm-settings').web.count]"
+            },
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', concat('webVm', copyIndex()))]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templates').extn]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "extn-settings": {
+                        "value": {
+                            "name": "[parameters('extn-settings').dsc.name]",
+                            "publisher": "[parameters('extn-settings').dsc.publisher]",
+                            "type": "[parameters('extn-settings').dsc.type]",
+                            "typeHandlerVersion": "[parameters('extn-settings').dsc.typeHandlerVersion]",
+                            "configuration": "[parameters('extn-settings').dsc.configuration]",
+                            "configurationArguments": "[parameters('extn-settings').dsc.configurationArguments]",
+                            "protectedSettings": "[parameters('extn-settings').dsc.protectedSettings]",
+                            "fileUris": [ "[parameters('extn-settings').dsc.fileUris]" ],
+                            "file": "[parameters('extn-settings').dsc.file]"
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}

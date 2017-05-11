@@ -1,0 +1,210 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "baseUrl": {
+            "allowedValues": [
+                "https://raw.githubusercontent.com/mrptsai/External-Cloud/"
+            ],
+            "defaultValue": "https://raw.githubusercontent.com/mrptsai/External-Cloud/",
+            "metadata": {
+                "description": "Select the appropriate Repository Base URL containing Pattern Templates and Resource Templates"
+            },
+            "type": "string"
+        },
+        "baseBranch": {
+            "allowedValues": [
+                "master"
+            ],
+            "defaultValue": "master",
+            "metadata": {
+                "description": "Select the appropriate Repository Branch"
+            },
+            "type": "string"
+        },
+        "deploymentPrefix": {
+            "metadata": {
+                "description": "Enter a Deployment Prefix containing the Country Code, Environment Code with Location Code and Project Abbreviation e.g. au-901-xyz-iaas"
+            },
+            "type": "string"
+        },
+        "patternName": {
+            "type": "string",
+            "metadata": {
+                "description": "Select the appropriate Architectural Pattern"
+            },
+            "defaultValue": "vm-poc-1",
+            "allowedValues": [
+                "vm-poc-1"
+            ]
+        },
+        "storageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Enter a unique Name for a new Storage Account or specify the name of an existing Storage Account. Use PowerShell and the following command to generate a unique Storage Account Name 'st + (-join ((48..57) + (97..122) | Get-Random -Count 15 | % {[char]$_}))'"
+            }
+        },
+        "storageNewOrExisting": {
+            "type": "string",
+            "metadata": {
+                "description": "Is the Storage Account New or Existing?"
+            },
+            "allowedValues": [
+                "new",
+                "existing"
+            ]
+        },
+        "storageExistingResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "Specifiy the existing Storage Resource Group. Leave blank if creating a new Storage Account"
+            },
+            "defaultValue": ""
+        },
+        "virtualNetworkName": {
+            "type": "string",
+            "metadata": {
+                "description": "Enter a Name for a Virtual Network or specify the name of an existing Virtual Network."
+            }
+        },
+        "virtualNetworkPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the Virtual Network Prefix to create or to be used"
+            }
+        },
+        "virtualNetworkNewOrExisting": {
+            "type": "string",
+            "metadata": {
+                "description": "Is the Virtual Network New or Existing?"
+            },
+            "allowedValues": [
+                "new",
+                "existing"
+            ]
+        },
+        "virtualNetworkExistingResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "Specifiy the existing Virtual Network Resource Group. Leave blank if creating a new Virtual Network"
+            },
+            "defaultValue": ""
+        },
+        "subnet0Name": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the Subnet name to create or to be used"
+            },
+            "defaultValue": "vm-subnet"
+        },
+        "subnet0Prefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the the Subnet Prefix to create or to be used"
+            }
+        },
+        "vmAdminUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "Specify the VM local Logon Account that will have Administration Priviledges"
+            },
+            "minLength": 1
+        },
+        "vmAdminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Enter a Password for the local Administration Account"
+            }
+        },
+        "vmCount": {
+            "type": "string",
+            "metadata": {
+                "description": "How many Virtual Machine do you want to deploy?"
+            },
+            "defaultValue": "1",
+            "allowedValues": [ "1", "2", "3", "4" ]
+        },
+        "vmSize": {
+            "allowedValues": [
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2"
+            ],
+            "metadata": {
+                "description": "Specifiy the size of VM required for the VM(s)"
+            },
+            "type": "string"
+        },
+        "vmType": {
+            "type": "string",
+            "metadata": {
+                "description": "What Operating System to you want to deploy for the VM's. 0 = Windows, 1 = Linux"
+            },
+            "defaultValue": "0",
+            "allowedValues": [ "0", "1" ]
+        }
+
+    },
+    "variables": {
+        "templateUrl": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/patterns/', parameters('patternName'), '/', parameters('patternName'), '.json')]",
+        "base-config": {
+            "prefix": "[parameters('deploymentPrefix')]",
+            "resources": "[concat(parameters('baseUrl'), parameters('baseBranch'), '/', 'resources')]"
+        },
+        "storage-settings": {
+            "accounts": [
+                "[parameters('storageAccountName')]"
+            ],
+            "newOrExisting": "[parameters('storageNewOrExisting')]",
+            "existingRg": "[parameters('storageExistingResourceGroup')]"
+        },
+        "vnet-settings": {
+            "name": "[parameters('virtualNetworkName')]",
+            "newOrExisting": "[parameters('virtualNetworkNewOrExisting')]",
+            "existingRg": "[parameters('virtualNetworkExistingResourceGroup')]",
+            "prefix": "[parameters('virtualNetworkPrefix')]",
+            "subnets": {
+                "subnet0Prefix": "[parameters('subnet0Prefix')]",
+                "subnet0Name": "[parameters('subnet0Name')]"
+            }
+        },
+        "vm-settings": {
+            "adminUserName": "[parameters('vmAdminUserName')]",
+            "adminPassword": "[parameters('vmAdminPassword')]",
+            "count": "[int(parameters('vmCount'))]",
+            "vmSize": "[parameters('vmSize')]",
+            "type": "[int(parameters('vmType'))]"
+        }
+    },
+    "resources": [
+        {
+            "name": "[parameters('patternName')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2016-09-01",
+            "dependsOn": [],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('templateUrl')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "base-config": {
+                        "value": "[variables('base-config')]"
+                    },
+                    "storage-settings": {
+                        "value": "[variables('storage-settings')]"
+                    },
+                    "vm-settings": {
+                        "value": "[variables('vm-settings')]"
+                    },
+                    "vnet-settings": {
+                        "value": "[variables('vnet-settings')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+    }
+}
