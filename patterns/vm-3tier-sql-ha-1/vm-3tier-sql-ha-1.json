@@ -69,12 +69,12 @@
         "vnetTemplate": "[concat(variables('resourcesUrl'), '/vnet-', parameters('vnet-settings').newOrExisting, '.template.json')]",
         "bizLbBackendPoolName": "bizLb-backEnd",
         "bizLbID": "[resourceId('Microsoft.Network/loadBalancers', variables('bizLbName'))]",
-        "bizLbName": "biz-lb",
-        "bizLbProbeName": "biz-probe",
+        "bizLbName": "lb-biz",
+        "bizLbProbeName": "probe-biz",
         "bizLbRuleName": "lb-rule-biz",
         "bizLbBackendPoolID": "[concat(variables('bizLbID'),'/backendAddressPools/', variables('bizLbBackendPoolName'))]",
-        "bizVMName": "biz-vm-",
-        "dcVMName": "dc-vm-",
+        "bizVMName": "VM-BIZ",
+        "dcVMName": "VM-DC",
         "extLbBackendPoolID": "[concat(variables('extLbID'),'/backendAddressPools/', variables('extLbBackendPoolName'))]",
         "extLbBackendPoolName": "extLb-backEnd-http",
         "extLbBackendPort": 3389,
@@ -84,16 +84,16 @@
         "extLbName": "ext-lb",
         "extLbProbeName": "http-probe",
         "extLbRuleName": "lb-rule-http",
-        "fswVMName": "fsw-vm-0",
+        "fswVMName": "VM-FSW0",
         "math": {
             "modulo2": [ 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1 ],
             "modulo3": [ 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2 ]
         },
-        "pipName": "ext-pip",
+        "pipName": "pip-ext",
         "sqlLbBackendPoolName": "sqlLb-backEnd",
         "sqlLbID": "[resourceId('Microsoft.Network/loadBalancers', variables('sqlLbName'))]",
-        "sqlLbName": "sql-lb",
-        "sqlLbProbeName": "sql-probe",
+        "sqlLbName": "lb-sql",
+        "sqlLbProbeName": "probe-sql",
         "sqlLbRuleName": "lb-rule-sql",
         "sqlLbBackendPoolID": "[concat(variables('sqlLbID'),'/backendAddressPools/', variables('sqlLbBackendPoolName'))]",
         "sqlAutoPatchingSettings": [
@@ -112,7 +112,7 @@
                 "maintenanceWindowDuration": "60"
             }
         ],
-        "sqlVMName": "sql-vm-",
+        "sqlVMName": "VM-SQL",
         "vmOS": [
             [ "MicrosoftWindowsServer", "WindowsServer", "2016-Datacenter", "windows" ],
             [ "Canonical", "UbuntuServer", "16.04-LTS", "linux" ],
@@ -126,7 +126,7 @@
             [ "dsc-iis", "Microsoft.Powershell", "DSC", "2.22", "[variables('dscTemplate')]", "[variables('dscScriptsUrl')]", "iis-on-windows-vm", "iis-config-dsc", "Main" ],
             [ "script-apache", "Microsoft.Azure.Extensions", "CustomScript", "2.0", "[variables('scriptTemplate')]", "[variables('dscScriptsUrl')]", "apache2-on-ubuntu-vm", "install_apache.sh", null ]
         ],
-        "webVMName": "web-vm-"
+        "webVMName": "VM-WEB"
     },
     "resources": [
         {
@@ -656,7 +656,7 @@
                     "vm-settings": {
                         "value": {
                             "mgmt": {
-                                "name": "mgmt-vm-",
+                                "name": "VM-MGMT",
                                 "count": 1,
                                 "adminUserName": "[parameters('vm-settings').adminUserName]",
                                 "adminPassword": "[parameters('vm-settings').adminPassword]",
@@ -664,12 +664,12 @@
                                 "imagePublisher": "[variables('vmOS')[parameters('vm-settings').type][0]]",
                                 "imageOffer": "[variables('vmOS')[parameters('vm-settings').type][1]]",
                                 "imageSku": "[variables('vmOS')[parameters('vm-settings').type][2]]",
-                                "nicName": "mgmt-nic-",
+                                "nicName": "nic-mgmt-",
                                 "vmSize": "Standard_D2_v2",
                                 "storageAccountContainerName": "[toLower(resourceGroup().name)]"
                             },
                             "web": {
-                                "name": "web-vm-",
+                                "name": "VM-WEB",
                                 "count": "[parameters('vm-settings').count]",
                                 "adminUserName": "[parameters('vm-settings').adminUserName]",
                                 "adminPassword": "[parameters('vm-settings').adminPassword]",
@@ -677,12 +677,12 @@
                                 "imagePublisher": "[variables('vmOS')[parameters('vm-settings').type][0]]",
                                 "imageOffer": "[variables('vmOS')[parameters('vm-settings').type][1]]",
                                 "imageSku": "[variables('vmOS')[parameters('vm-settings').type][2]]",
-                                "nicName": "web-nic-",
+                                "nicName": "nic-web-",
                                 "vmSize": "Standard_D2_v2",
                                 "storageAccountContainerName": "[toLower(resourceGroup().name)]"
                             },
                             "biz": {
-                                "name": "biz-vm-",
+                                "name": "VM-APP",
                                 "count": "[parameters('vm-settings').count]",
                                 "adminUserName": "[parameters('vm-settings').adminUserName]",
                                 "adminPassword": "[parameters('vm-settings').adminPassword]",
@@ -690,12 +690,12 @@
                                 "imagePublisher": "[variables('vmOS')[parameters('vm-settings').type][0]]",
                                 "imageOffer": "[variables('vmOS')[parameters('vm-settings').type][1]]",
                                 "imageSku": "[variables('vmOS')[parameters('vm-settings').type][2]]",
-                                "nicName": "biz-nic-",
+                                "nicName": "nic-app-",
                                 "vmSize": "Standard_D2_v2",
                                 "storageAccountContainerName": "[toLower(resourceGroup().name)]"
                             },
                             "sql": {
-                                "name": "sql-vm-",
+                                "name": "VM-DB",
                                 "count": "[parameters('sql-settings').count]",
                                 "adminUserName": "[parameters('vm-settings').adminUserName]",
                                 "adminPassword": "[parameters('vm-settings').adminPassword]",
@@ -703,12 +703,12 @@
                                 "imagePublisher": "[variables('vmOS')[parameters('sql-settings').type][0]]",
                                 "imageOffer": "[variables('vmOS')[parameters('sql-settings').type][1]]",
                                 "imageSku": "[variables('vmOS')[parameters('sql-settings').type][2]]",
-                                "nicName": "sql-nic-",
+                                "nicName": "nic-db-",
                                 "vmSize": "Standard_D2_v2",
                                 "storageAccountContainerName": "[toLower(resourceGroup().name)]"
                             },
                             "fsw": {
-                                "name": "fsw-vm-",
+                                "name": "VM-FSW",
                                 "count": 1,
                                 "adminUserName": "[parameters('vm-settings').adminUserName]",
                                 "adminPassword": "[parameters('vm-settings').adminPassword]",
@@ -716,7 +716,7 @@
                                 "imagePublisher": "[variables('vmOS')[parameters('vm-settings').type][0]]",
                                 "imageOffer": "[variables('vmOS')[parameters('vm-settings').type][1]]",
                                 "imageSku": "[variables('vmOS')[parameters('vm-settings').type][2]]",
-                                "nicName": "fsw-nic-",
+                                "nicName": "nic-fsw-",
                                 "vmSize": "Standard_D2_v2",
                                 "storageAccountContainerName": "[toLower(resourceGroup().name)]"
                             }
